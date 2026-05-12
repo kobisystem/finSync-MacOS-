@@ -1,0 +1,43 @@
+.ds-field {
+  display: grid;
+  gap: 8px;
+}
+
+.ds-field__label {
+  color: var(--ds-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ds-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+[data-theme="dark"] .ds-input {
+  background: rgba(255,255,255,0.035);
+}
+
+.ds-input:focus {
+  border-color: rgba(121, 255, 208, 0.58);
+}
+
+.ds-input--error {
+  border-color: var(--ds-error);
+}
+
+.ds-field__hint {
+  color: var(--ds-text-soft);
+  font-size: 12px;
+}
+
+.ds-field__error {
+  color: var(--ds-error);
+  font-size: 12px;
+}

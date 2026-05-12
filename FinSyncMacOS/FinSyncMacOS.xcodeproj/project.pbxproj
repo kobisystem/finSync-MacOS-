@@ -1,0 +1,466 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 71;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0A0000010000000000000001 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0A0000010000000000000101 /* Supabase */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0A0000010000000000000201 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0A0000010000000000001000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0A0000010000000000001100;
+			remoteInfo = FinSyncMacOS;
+		};
+		0A0000010000000000000202 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0A0000010000000000001000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0A0000010000000000001100;
+			remoteInfo = FinSyncMacOS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0A0000010000000000000301 /* FinSyncMacOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FinSyncMacOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A0000010000000000000302 /* FinSyncMacOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinSyncMacOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A0000010000000000000303 /* FinSyncMacOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinSyncMacOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A0000010000000000000304 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = text; path = Package.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		0A0000010000000000000305 /* FinSyncMacOS */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = FinSyncMacOS; sourceTree = "<group>"; };
+		0A0000010000000000000306 /* FinSyncMacOSAppRunner */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = FinSyncMacOSAppRunner; sourceTree = "<group>"; };
+		0A0000010000000000000307 /* FinSyncMacOSTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = FinSyncMacOSTests; sourceTree = "<group>"; };
+		0A0000010000000000000308 /* FinSyncMacOSUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = FinSyncMacOSUITests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0A0000010000000000000401 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A0000010000000000000001 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0A0000010000000000000402 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0A0000010000000000000403 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0A0000010000000000000501 = {
+			isa = PBXGroup;
+			children = (
+				0A0000010000000000000304 /* Package.swift */,
+				0A0000010000000000000305 /* FinSyncMacOS */,
+				0A0000010000000000000306 /* FinSyncMacOSAppRunner */,
+				0A0000010000000000000307 /* FinSyncMacOSTests */,
+				0A0000010000000000000308 /* FinSyncMacOSUITests */,
+				0A0000010000000000000502 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0A0000010000000000000502 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0A0000010000000000000301 /* FinSyncMacOS.app */,
+				0A0000010000000000000302 /* FinSyncMacOSTests.xctest */,
+				0A0000010000000000000303 /* FinSyncMacOSUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0A0000010000000000001100 /* FinSyncMacOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0A0000010000000000002100 /* Build configuration list for PBXNativeTarget "FinSyncMacOS" */;
+			buildPhases = (
+				0A0000010000000000000601 /* Sources */,
+				0A0000010000000000000401 /* Frameworks */,
+				0A0000010000000000000701 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				0A0000010000000000000305 /* FinSyncMacOS */,
+				0A0000010000000000000306 /* FinSyncMacOSAppRunner */,
+			);
+			name = FinSyncMacOS;
+			packageProductDependencies = (
+				0A0000010000000000000101 /* Supabase */,
+			);
+			productName = FinSyncMacOS;
+			productReference = 0A0000010000000000000301 /* FinSyncMacOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		0A0000010000000000001200 /* FinSyncMacOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0A0000010000000000002200 /* Build configuration list for PBXNativeTarget "FinSyncMacOSTests" */;
+			buildPhases = (
+				0A0000010000000000000602 /* Sources */,
+				0A0000010000000000000402 /* Frameworks */,
+				0A0000010000000000000702 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0A0000010000000000000801 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0A0000010000000000000307 /* FinSyncMacOSTests */,
+			);
+			name = FinSyncMacOSTests;
+			productName = FinSyncMacOSTests;
+			productReference = 0A0000010000000000000302 /* FinSyncMacOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		0A0000010000000000001300 /* FinSyncMacOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0A0000010000000000002300 /* Build configuration list for PBXNativeTarget "FinSyncMacOSUITests" */;
+			buildPhases = (
+				0A0000010000000000000603 /* Sources */,
+				0A0000010000000000000403 /* Frameworks */,
+				0A0000010000000000000703 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0A0000010000000000000802 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0A0000010000000000000308 /* FinSyncMacOSUITests */,
+			);
+			name = FinSyncMacOSUITests;
+			productName = FinSyncMacOSUITests;
+			productReference = 0A0000010000000000000303 /* FinSyncMacOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0A0000010000000000001000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					0A0000010000000000001100 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					0A0000010000000000001200 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 0A0000010000000000001100;
+					};
+					0A0000010000000000001300 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 0A0000010000000000001100;
+					};
+				};
+			};
+			buildConfigurationList = 0A0000010000000000002000 /* Build configuration list for PBXProject "FinSyncMacOS" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = pt_BR;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				pt_BR,
+				en,
+				Base,
+				"pt-BR",
+			);
+			mainGroup = 0A0000010000000000000501;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0A0000010000000000000100 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			productRefGroup = 0A0000010000000000000502 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0A0000010000000000001100 /* FinSyncMacOS */,
+				0A0000010000000000001200 /* FinSyncMacOSTests */,
+				0A0000010000000000001300 /* FinSyncMacOSUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0A0000010000000000000701 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0A0000010000000000000702 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0A0000010000000000000703 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0A0000010000000000000601 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0A0000010000000000000602 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0A0000010000000000000603 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0A0000010000000000000801 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0A0000010000000000001100 /* FinSyncMacOS */;
+			targetProxy = 0A0000010000000000000201 /* PBXContainerItemProxy */;
+		};
+		0A0000010000000000000802 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0A0000010000000000001100 /* FinSyncMacOS */;
+			targetProxy = 0A0000010000000000000202 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0A0000010000000000003001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		0A0000010000000000003002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		0A0000010000000000003101 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = FinSync;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_BUNDLE_IDENTIFIER = app.finsync.macos.dev;
+				PRODUCT_MODULE_NAME = FinSyncCore;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		0A0000010000000000003102 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = FinSync;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_BUNDLE_IDENTIFIER = app.finsync.macos;
+				PRODUCT_MODULE_NAME = FinSyncCore;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		0A0000010000000000003201 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.finsync.macos.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FinSyncMacOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FinSyncMacOS";
+			};
+			name = Debug;
+		};
+		0A0000010000000000003202 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.finsync.macos.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FinSyncMacOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FinSyncMacOS";
+			};
+			name = Release;
+		};
+		0A0000010000000000003301 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.finsync.macos.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = FinSyncMacOS;
+			};
+			name = Debug;
+		};
+		0A0000010000000000003302 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.finsync.macos.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = FinSyncMacOS;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0A0000010000000000002000 /* Build configuration list for PBXProject "FinSyncMacOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A0000010000000000003001 /* Debug */,
+				0A0000010000000000003002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0A0000010000000000002100 /* Build configuration list for PBXNativeTarget "FinSyncMacOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A0000010000000000003101 /* Debug */,
+				0A0000010000000000003102 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0A0000010000000000002200 /* Build configuration list for PBXNativeTarget "FinSyncMacOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A0000010000000000003201 /* Debug */,
+				0A0000010000000000003202 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0A0000010000000000002300 /* Build configuration list for PBXNativeTarget "FinSyncMacOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A0000010000000000003301 /* Debug */,
+				0A0000010000000000003302 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0A0000010000000000000100 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0A0000010000000000000101 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0A0000010000000000000100 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 0A0000010000000000001000 /* Project object */;
+}
