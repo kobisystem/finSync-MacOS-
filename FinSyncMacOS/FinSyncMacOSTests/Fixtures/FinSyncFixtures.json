@@ -1,0 +1,8 @@
+{
+  "accountOwners": [
+    { "id": "owner-1", "email": "owner1@example.com", "displayName": "Owner One", "createdAt": "2026-01-01T00:00:00Z" },
+    { "id": "owner-2", "email": "owner2@example.com", "displayName": "Owner Two", "createdAt": "2026-01-01T00:00:00Z" }
+  ],
+  "notes": "Fixture covers account owners, accounts, transactions, imports, categories, classifications, forecasts, audit events, card payments, and multi-currency cases."
+}
+

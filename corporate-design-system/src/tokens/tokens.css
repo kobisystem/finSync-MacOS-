@@ -1,0 +1,123 @@
+:root {
+  color-scheme: light;
+
+  /* Font */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Neutral / Graphite */
+  --ds-white: #ffffff;
+  --ds-graphite-50: #f8f9fa;
+  --ds-graphite-100: #f2f4f5;
+  --ds-graphite-200: #dde1e4;
+  --ds-graphite-300: #c4c9ce;
+  --ds-graphite-500: #7a838b;
+  --ds-graphite-600: #5a636b;
+  --ds-graphite-700: #3a4147;
+  --ds-graphite-800: #252a2e;
+  --ds-graphite-900: #1a1d1f;
+  --ds-graphite-950: #111315;
+
+  /* Emerald */
+  --ds-emerald-50: #f1f8f5;
+  --ds-emerald-100: #ddeee8;
+  --ds-emerald-500: #339276;
+  --ds-emerald-600: #28745f;
+  --ds-emerald-700: #1e5f4e;
+  --ds-emerald-800: #16483c;
+  --ds-emerald-900: #12382f;
+
+  /* Semantic */
+  --ds-success: #28745f;
+  --ds-info: #3a6478;
+  --ds-warning: #a66a00;
+  --ds-error: #b42318;
+
+  /* Theme tokens - light */
+  --ds-bg: var(--ds-graphite-50);
+  --ds-surface: var(--ds-white);
+  --ds-surface-raised: var(--ds-white);
+  --ds-surface-muted: var(--ds-graphite-100);
+  --ds-text: var(--ds-graphite-900);
+  --ds-text-muted: var(--ds-graphite-600);
+  --ds-text-soft: var(--ds-graphite-500);
+  --ds-border: var(--ds-graphite-200);
+  --ds-border-strong: var(--ds-graphite-300);
+  --ds-primary: var(--ds-emerald-700);
+  --ds-primary-hover: var(--ds-emerald-800);
+  --ds-primary-soft: var(--ds-emerald-50);
+  --ds-focus: rgba(51, 146, 118, 0.18);
+
+  /* Shape */
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+  --ds-radius-xl: 16px;
+  --ds-radius-2xl: 24px;
+
+  /* Elevation */
+  --ds-shadow-sm: 0 1px 2px rgba(17, 19, 21, 0.06);
+  --ds-shadow-md: 0 8px 24px rgba(17, 19, 21, 0.08);
+  --ds-shadow-lg: 0 18px 60px rgba(17, 19, 21, 0.12);
+
+  /* Chrome / metal */
+  --ds-chrome: linear-gradient(135deg, #f7fafa 0%, #8f989d 20%, #121718 42%, #eef2f3 58%, #5d666b 78%, #ffffff 100%);
+  --ds-brushed-metal: linear-gradient(90deg, #6d767b, #f4f7f8, #8e969b, #31383b, #e7ecef);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ds-bg: #050606;
+  --ds-surface: #0a0d0e;
+  --ds-surface-raised: #15191a;
+  --ds-surface-muted: rgba(255, 255, 255, 0.04);
+  --ds-text: #f4f7f8;
+  --ds-text-muted: #a3a8ae;
+  --ds-text-soft: #737b80;
+  --ds-border: rgba(255, 255, 255, 0.10);
+  --ds-border-strong: rgba(216, 221, 225, 0.24);
+  --ds-primary: #1fa36d;
+  --ds-primary-hover: #37c986;
+  --ds-primary-soft: rgba(31, 163, 109, 0.10);
+  --ds-focus: rgba(31, 163, 109, 0.16);
+
+  --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32);
+  --ds-shadow-md: 0 18px 60px rgba(0, 0, 0, 0.34);
+  --ds-shadow-lg: 0 28px 90px rgba(0, 0, 0, 0.44);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--ds-bg);
+  color: var(--ds-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.ds-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ds-focus);
+}
+
+.ds-metal-surface {
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 34%),
+    linear-gradient(145deg, var(--ds-surface-raised), var(--ds-surface));
+}
+
+.ds-active-glow {
+  border-color: rgba(121, 255, 208, 0.42) !important;
+  box-shadow:
+    inset 0 0 16px rgba(31, 163, 109, 0.08),
+    0 0 18px rgba(31, 163, 109, 0.14);
+}

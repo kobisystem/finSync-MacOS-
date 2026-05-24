@@ -1,0 +1,24 @@
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+*.log
+.env
+.env.*
+
+# Swift / Xcode
+.build/
+build/
+**/build/
+DerivedData/
+*.swiftpm/
+Packages/
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM

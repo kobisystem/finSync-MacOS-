@@ -1,0 +1,13 @@
+"auth.sign_in" = "Entrar";
+"auth.session_expired" = "Sessao expirada. Entre novamente.";
+"dashboard.title" = "Dashboard";
+"dashboard.empty" = "Nenhum dado financeiro processado.";
+"review.title" = "Revisao";
+"review.empty" = "Nenhuma classificacao pendente.";
+"imports.empty" = "Nenhuma importacao encontrada.";
+"accounts.empty" = "Nenhuma conta encontrada.";
+"transactions.empty" = "Nenhuma transacao encontrada.";
+"kpis.empty" = "Nenhum KPI mensal encontrado.";
+"forecast.empty" = "Sem previsao mensal disponivel.";
+"audit.empty" = "Nenhum evento de auditoria encontrado.";
+
