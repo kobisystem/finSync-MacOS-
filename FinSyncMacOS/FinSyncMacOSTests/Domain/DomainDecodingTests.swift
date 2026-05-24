@@ -3,7 +3,12 @@ import XCTest
 
 final class DomainDecodingTests: XCTestCase {
     func testFixtureBundleLoads() throws {
-        let url = Bundle.module.url(forResource: "FinSyncFixtures", withExtension: "json")
+        #if SWIFT_PACKAGE
+        let bundle = Bundle.module
+        #else
+        let bundle = Bundle(for: DomainDecodingTests.self)
+        #endif
+        let url = bundle.url(forResource: "FinSyncFixtures", withExtension: "json")
         XCTAssertNotNil(url)
         let data = try XCTUnwrap(url).withUnsafeFileSystemRepresentation { path in
             try Data(contentsOf: URL(fileURLWithPath: String(cString: path!)))

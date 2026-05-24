@@ -2,10 +2,9 @@ import Foundation
 @testable import FinSyncCore
 
 enum TestData {
-    static let iso = ISO8601DateFormatter()
-
     static func date(_ value: String = "2026-05-01T00:00:00Z") -> Date {
-        iso.date(from: value)!
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: value)!
     }
 
     static func owner(_ id: String = "owner-1") -> AccountOwner {
@@ -40,8 +39,8 @@ enum TestData {
         )
     }
 
-    static func category(id: String = "cat-1", owner: String = "owner-1", active: Bool = true) -> Category {
-        Category(id: id, accountOwnerId: owner, name: "Categoria", kind: .expense, parentCategoryId: nil, isActive: active, createdAt: date(), updatedAt: date())
+    static func category(id: String = "cat-1", owner: String = "owner-1", active: Bool = true) -> FinSyncCore.Category {
+        FinSyncCore.Category(id: id, accountOwnerId: owner, name: "Categoria", kind: .expense, parentCategoryId: nil, isActive: active, createdAt: date(), updatedAt: date())
     }
 
     static func classification(id: String = "class-1", transactionId: String = "tx-1", owner: String = "owner-1", active: Bool = true) -> TransactionClassification {
@@ -55,5 +54,30 @@ enum TestData {
     static func forecast(owner: String = "owner-1", confidence: ForecastConfidence = .normal) -> CashFlowForecast {
         CashFlowForecast(id: "forecast-1", accountOwnerId: owner, month: date(), incomeConfirmed: 100, incomePredicted: 0, incomeEstimated: 0, expenseConfirmed: 60, expensePredicted: 0, expenseEstimated: 0, cardObligationsConfirmed: 10, cardObligationsPredicted: 0, cardObligationsEstimated: 0, projectedNetResult: 30, projectedBalance: 300, confidence: confidence, basisSummary: "Base fixture", generatedAt: date())
     }
-}
 
+    static func forecastMatrix(confidence: ForecastConfidence = .normal) -> CashFlowForecastMatrix {
+        let start = date("2026-01-01T00:00:00Z")
+        return CashFlowForecastMatrix(
+            metadata: CashFlowForecastMetadata(
+                generatedAt: date(),
+                startMonth: start,
+                months: 12,
+                initialBalance: 0,
+                defaultWindow: true
+            ),
+            months: CashFlowForecastMatrix.resolveMonths(start: start, count: 12),
+            categoryLines: [],
+            monthlyTotals: [
+                CashFlowForecastMonthlyTotal(
+                    month: start,
+                    totalIncome: 100,
+                    totalExpense: 60,
+                    netResult: 40,
+                    accumulatedBalance: 40,
+                    confidence: confidence,
+                    basisSummary: "Base fixture"
+                )
+            ]
+        )
+    }
+}

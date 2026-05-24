@@ -30,6 +30,14 @@ let package = Package(
             name: "FinSyncValidation",
             dependencies: ["FinSyncCore"],
             path: "FinSyncValidation"
+        ),
+        .testTarget(
+            name: "FinSyncCoreTests",
+            dependencies: ["FinSyncCore"],
+            path: "FinSyncMacOSTests",
+            resources: [
+                .process("Fixtures")
+            ]
         )
     ]
 )
