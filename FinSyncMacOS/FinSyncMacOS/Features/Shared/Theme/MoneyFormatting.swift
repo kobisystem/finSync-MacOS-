@@ -59,6 +59,8 @@ public enum BankIconography {
         switch kind {
         case .creditCard: return "creditcard.fill"
         case .bankAccount: return "building.columns.fill"
+        case .wallet: return "wallet.pass.fill"
+        case .investment: return "chart.line.uptrend.xyaxis"
         }
     }
 }

@@ -51,7 +51,7 @@ let summary = DashboardSummaryCalculator.makeSummary(from: DashboardDataSet(tran
     Fixtures.transaction(id: "expense", type: .expense, amount: 40),
     Fixtures.transaction(id: "card", type: .cardPayment, amount: 40),
     Fixtures.transaction(id: "usd", type: .expense, amount: 10, currency: CurrencyCode(rawValue: "USD"), review: .needsReview)
-], forecasts: [Fixtures.forecast()]))
+], forecastMatrix: CashFlowForecastMatrix.empty(startMonth: Fixtures.now, months: 12, defaultWindow: true)))
 expect(summary.expenses.amount(for: .brl) == 40, "card_payment must not duplicate expense")
 expect(summary.expenses.amount(for: CurrencyCode(rawValue: "USD")) == 10, "dashboard must separate currencies")
 expect(summary.pendingReviewCount == 1, "dashboard must count pending review")

@@ -13,20 +13,48 @@ public struct FinancialSnapshot: Equatable, Sendable {
     public var transactions: [Transaction]
     public var categories: [Category]
     public var classifications: [TransactionClassification]
-    public var forecasts: [CashFlowForecast]
+    public var creditCardStatements: [CreditCardStatement]
+    public var balanceSnapshots: [BalanceSnapshot]
+    public var monthlyPeriods: [MonthlyPeriod]
+    public var obligations: [Obligation]
+    public var forecastMatrix: CashFlowForecastMatrix
     public var auditEvents: [AuditEvent]
     public var refreshedAt: Date
+
+    public init(
+        owner: AccountOwner,
+        accounts: [Account] = [],
+        imports: [ImportFile] = [],
+        transactions: [Transaction] = [],
+        categories: [Category] = [],
+        classifications: [TransactionClassification] = [],
+        creditCardStatements: [CreditCardStatement] = [],
+        balanceSnapshots: [BalanceSnapshot] = [],
+        monthlyPeriods: [MonthlyPeriod] = [],
+        obligations: [Obligation] = [],
+        forecastMatrix: CashFlowForecastMatrix,
+        auditEvents: [AuditEvent] = [],
+        refreshedAt: Date = Date()
+    ) {
+        self.owner = owner
+        self.accounts = accounts
+        self.imports = imports
+        self.transactions = transactions
+        self.categories = categories
+        self.classifications = classifications
+        self.creditCardStatements = creditCardStatements
+        self.balanceSnapshots = balanceSnapshots
+        self.monthlyPeriods = monthlyPeriods
+        self.obligations = obligations
+        self.forecastMatrix = forecastMatrix
+        self.auditEvents = auditEvents
+        self.refreshedAt = refreshedAt
+    }
 
     public static func empty(owner: AccountOwner) -> FinancialSnapshot {
         FinancialSnapshot(
             owner: owner,
-            accounts: [],
-            imports: [],
-            transactions: [],
-            categories: [],
-            classifications: [],
-            forecasts: [],
-            auditEvents: [],
+            forecastMatrix: CashFlowForecastMatrix.empty(startMonth: Calendar(identifier: .gregorian).date(from: Calendar(identifier: .gregorian).dateComponents([.year], from: Date())) ?? Date(), months: 12, defaultWindow: true),
             refreshedAt: Date()
         )
     }
@@ -104,7 +132,11 @@ public actor SupabaseRESTClient {
         async let transactions: [Transaction] = getOwned(table: "transactions", ownerId: context.owner.id, token: context.session.accessToken)
         async let categories: [Category] = getOwned(table: "categories", ownerId: context.owner.id, token: context.session.accessToken)
         async let classifications: [TransactionClassification] = getOwned(table: "transaction_classifications", ownerId: context.owner.id, token: context.session.accessToken)
-        async let forecasts: [CashFlowForecast] = getOwned(table: "cash_flow_forecasts", ownerId: context.owner.id, token: context.session.accessToken)
+        async let creditCardStatements: [CreditCardStatement] = getOwnedOptional(table: "credit_card_statements", ownerId: context.owner.id, token: context.session.accessToken)
+        async let balanceSnapshots: [BalanceSnapshot] = getOwnedOptional(table: "balance_snapshots", ownerId: context.owner.id, token: context.session.accessToken)
+        async let monthlyPeriods: [MonthlyPeriod] = getOwnedOptional(table: "monthly_periods", ownerId: context.owner.id, token: context.session.accessToken)
+        async let obligations: [Obligation] = getOwnedOptional(table: "obligations", ownerId: context.owner.id, token: context.session.accessToken)
+        async let forecastMatrix = fetchCashFlowForecastMatrixOwned(ownerId: context.owner.id, token: context.session.accessToken, months: 36, startMonth: nil)
         async let auditEvents: [AuditEvent] = getOwned(table: "audit_events", ownerId: context.owner.id, token: context.session.accessToken)
 
         return try await FinancialSnapshot(
@@ -114,7 +146,11 @@ public actor SupabaseRESTClient {
             transactions: transactions,
             categories: categories,
             classifications: classifications,
-            forecasts: forecasts,
+            creditCardStatements: creditCardStatements,
+            balanceSnapshots: balanceSnapshots,
+            monthlyPeriods: monthlyPeriods,
+            obligations: obligations,
+            forecastMatrix: forecastMatrix,
             auditEvents: auditEvents,
             refreshedAt: Date()
         )
@@ -215,6 +251,20 @@ public actor SupabaseRESTClient {
             filters: [URLQueryItem(name: "account_owner_id", value: "eq.\(ownerId)")],
             accessToken: token
         )
+    }
+
+    /// Like `getOwned` but tolerates tables that are not present in the Supabase
+    /// schema yet (returns an empty array instead of failing the whole snapshot).
+    private func getOwnedOptional<T: Decodable & Sendable>(table: String, ownerId: String, token: String) async throws -> [T] {
+        do {
+            return try await getOwned(table: table, ownerId: ownerId, token: token)
+        } catch let error as AppError {
+            if case .network(let message) = error,
+               message.contains("PGRST205") || message.contains("PGRST204") || message.contains(table) {
+                return []
+            }
+            throw error
+        }
     }
 
     private func get<T: Decodable & Sendable>(table: String, select: String, filters: [URLQueryItem], accessToken: String) async throws -> T {
@@ -430,4 +480,219 @@ private enum SupabaseDateParser {
         dateOnlyFormatter.dateFormat = "yyyy-MM-dd"
         return dateOnlyFormatter.date(from: value)
     }
+}
+
+private extension SupabaseRESTClient {
+    func fetchCashFlowForecastMatrixOwned(ownerId: String, token: String, months: Int, startMonth: Date?) async throws -> CashFlowForecastMatrix {
+        guard (1...36).contains(months) else {
+            throw AppError.validation("Horizonte de previsão inválido. Use valores entre 1 e 36 meses.")
+        }
+
+        let resolvedStartMonth = startMonth ?? Self.defaultForecastStartMonth()
+        let resolvedMonths = Self.resolveForecastMonths(start: resolvedStartMonth, count: months)
+        let startMonthQuery = Self.monthDateString(resolvedStartMonth)
+        let runs: [ForecastRunRow]
+        do {
+            runs = try await get(
+                table: "forecast_runs",
+                select: "id,start_month,months_ahead,default_window,initial_balance,generated_at",
+                filters: [
+                    URLQueryItem(name: "account_owner_id", value: "eq.\(ownerId)"),
+                    URLQueryItem(name: "start_month", value: "eq.\(startMonthQuery)"),
+                    URLQueryItem(name: "order", value: "generated_at.desc"),
+                    URLQueryItem(name: "limit", value: "1")
+                ],
+                accessToken: token
+            )
+        } catch {
+            if Self.isMissingForecastMatrixSchemaError(error) {
+                throw AppError.configuration("Schema de forecast 004 não aplicado no Supabase. Execute as migrations mais recentes.")
+            }
+            throw error
+        }
+
+        guard let run = runs.first else {
+            return CashFlowForecastMatrix.empty(startMonth: resolvedStartMonth, months: months, defaultWindow: startMonth == nil)
+        }
+
+        let totalsRows: [ForecastMonthTotalRow]
+        let categoryRows: [ForecastCategoryLineRow]
+        do {
+            totalsRows = try await get(
+                table: "forecast_month_totals",
+                select: "month,total_income,total_expense,net_result,accumulated_balance,confidence,basis_summary",
+                filters: [
+                    URLQueryItem(name: "account_owner_id", value: "eq.\(ownerId)"),
+                    URLQueryItem(name: "forecast_run_id", value: "eq.\(run.id)"),
+                    URLQueryItem(name: "order", value: "month.asc")
+                ],
+                accessToken: token
+            )
+
+            categoryRows = try await get(
+                table: "forecast_category_lines",
+                select: "category_id,category_name_snapshot,category_kind,month,projected_amount,calculation_basis,confidence,notes",
+                filters: [
+                    URLQueryItem(name: "forecast_run_id", value: "eq.\(run.id)"),
+                    URLQueryItem(name: "order", value: "month.asc")
+                ],
+                accessToken: token
+            )
+        } catch {
+            if Self.isMissingForecastMatrixSchemaError(error) {
+                throw AppError.configuration("Schema de forecast 004 não aplicado no Supabase. Execute as migrations mais recentes.")
+            }
+            throw error
+        }
+
+        let monthKeySet = Set(resolvedMonths.map(Self.monthKey))
+
+        let categoryLines = categoryRows.compactMap { row -> CashFlowForecastCategoryLine? in
+            guard monthKeySet.contains(Self.monthKey(row.month)) else { return nil }
+            let categoryKind = CategoryKind(rawValue: row.categoryKind) ?? .expense
+            let calculationBasis = ForecastCalculationBasis(rawValue: row.calculationBasis) ?? .noHistory
+            let confidence = ForecastConfidence(rawValue: row.confidence) ?? .low
+            return CashFlowForecastCategoryLine(
+                categoryId: row.categoryId ?? "00000000-0000-0000-0000-000000000999",
+                categoryName: row.categoryNameSnapshot,
+                categoryKind: categoryKind,
+                month: row.month,
+                projectedAmount: row.projectedAmount.value,
+                calculationBasis: calculationBasis,
+                confidence: confidence,
+                notes: row.notes
+            )
+        }
+
+        let totalsByMonth = Dictionary(uniqueKeysWithValues: totalsRows.map { (Self.monthKey($0.month), $0) })
+        let monthlyTotals = resolvedMonths.map { month -> CashFlowForecastMonthlyTotal in
+            if let row = totalsByMonth[Self.monthKey(month)] {
+                return CashFlowForecastMonthlyTotal(
+                    month: month,
+                    totalIncome: row.totalIncome.value,
+                    totalExpense: row.totalExpense.value,
+                    netResult: row.netResult.value,
+                    accumulatedBalance: row.accumulatedBalance.value,
+                    confidence: ForecastConfidence(rawValue: row.confidence) ?? .low,
+                    basisSummary: row.basisSummary ?? ""
+                )
+            }
+
+            return CashFlowForecastMonthlyTotal(
+                month: month,
+                totalIncome: 0,
+                totalExpense: 0,
+                netResult: 0,
+                accumulatedBalance: 0,
+                confidence: .low,
+                basisSummary: "Sem dados"
+            )
+        }
+
+        let metadata = CashFlowForecastMetadata(
+            generatedAt: run.generatedAt,
+            startMonth: resolvedStartMonth,
+            months: months,
+            initialBalance: run.initialBalance.value,
+            defaultWindow: run.defaultWindow
+        )
+
+        return CashFlowForecastMatrix(
+            metadata: metadata,
+            months: resolvedMonths,
+            categoryLines: categoryLines,
+            monthlyTotals: monthlyTotals
+        )
+    }
+
+    static func defaultForecastStartMonth() -> Date {
+        let calendar = Calendar(identifier: .gregorian)
+        return calendar.date(from: calendar.dateComponents([.year], from: Date())) ?? Date()
+    }
+
+    static func resolveForecastMonths(start: Date, count: Int) -> [Date] {
+        CashFlowForecastMatrix.resolveMonths(start: start, count: count)
+    }
+
+    static func monthKey(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM"
+        return formatter.string(from: date)
+    }
+
+    static func monthDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    static func isMissingForecastMatrixSchemaError(_ error: any Error) -> Bool {
+        guard case .network(let message) = (error as? AppError) else {
+            return false
+        }
+
+        return message.contains("PGRST205")
+            || message.contains("forecast_runs")
+            || message.contains("forecast_month_totals")
+            || message.contains("forecast_category_lines")
+    }
+}
+
+/// PostgREST returns `numeric`/`decimal` columns as JSON strings by default to
+/// preserve precision. Foundation's default `Decimal` decoder only accepts JSON
+/// numbers, so direct decoding drops rows silently. This wrapper accepts both.
+struct SupabaseDecimal: Decodable, Sendable {
+    let value: Decimal
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let direct = try? container.decode(Decimal.self) {
+            self.value = direct
+            return
+        }
+        let raw = try container.decode(String.self)
+        guard let parsed = Decimal(string: raw, locale: Locale(identifier: "en_US_POSIX")) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid decimal string: \(raw)"
+            )
+        }
+        self.value = parsed
+    }
+}
+
+private struct ForecastRunRow: Decodable, Sendable {
+    let id: String
+    let startMonth: Date
+    let monthsAhead: Int
+    let defaultWindow: Bool
+    let initialBalance: SupabaseDecimal
+    let generatedAt: Date
+}
+
+private struct ForecastMonthTotalRow: Decodable, Sendable {
+    let month: Date
+    let totalIncome: SupabaseDecimal
+    let totalExpense: SupabaseDecimal
+    let netResult: SupabaseDecimal
+    let accumulatedBalance: SupabaseDecimal
+    let confidence: String
+    let basisSummary: String?
+}
+
+private struct ForecastCategoryLineRow: Decodable, Sendable {
+    let categoryId: String?
+    let categoryNameSnapshot: String
+    let categoryKind: String
+    let month: Date
+    let projectedAmount: SupabaseDecimal
+    let calculationBasis: String
+    let confidence: String
+    let notes: String?
 }

@@ -16,7 +16,7 @@ public enum MonthlyKPICalculator {
                     income.add(transaction.money)
                 case .expense, .fee:
                     expenses.add(transaction.money)
-                case .cardPayment, .transfer, .unknown:
+                case .cardPayment, .transfer, .adjustment, .unknown:
                     continue
                 }
             }

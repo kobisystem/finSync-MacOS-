@@ -3,6 +3,14 @@ import Foundation
 public enum AccountKind: String, Codable, CaseIterable, Sendable {
     case bankAccount = "bank_account"
     case creditCard = "credit_card"
+    case wallet
+    case investment
+}
+
+public enum AccountStatus: String, Codable, CaseIterable, Sendable {
+    case active
+    case inactive
+    case needsReview = "needs_review"
 }
 
 public enum ImportStatus: String, Codable, CaseIterable, Sendable {
@@ -30,6 +38,7 @@ public enum TransactionType: String, Codable, CaseIterable, Sendable {
     case refund
     case fee
     case transfer
+    case adjustment
     case unknown
 }
 
@@ -50,6 +59,31 @@ public enum StatementStatus: String, Codable, CaseIterable, Sendable {
 public enum CategoryKind: String, Codable, CaseIterable, Sendable {
     case income
     case expense
+}
+
+public enum BalanceSnapshotSource: String, Codable, CaseIterable, Sendable {
+    case importedStatement = "imported_statement"
+    case manual
+    case calculated
+}
+
+public enum MonthlyPeriodStatus: String, Codable, CaseIterable, Sendable {
+    case open
+    case reviewed
+    case closed
+}
+
+public enum ObligationSourceType: String, Codable, CaseIterable, Sendable {
+    case creditCardStatement = "credit_card_statement"
+    case installment
+    case recurringExpense = "recurring_expense"
+    case manual
+}
+
+public enum ObligationStatus: String, Codable, CaseIterable, Sendable {
+    case pending
+    case paid
+    case cancelled
 }
 
 public enum ClassificationSource: String, Codable, CaseIterable, Sendable {

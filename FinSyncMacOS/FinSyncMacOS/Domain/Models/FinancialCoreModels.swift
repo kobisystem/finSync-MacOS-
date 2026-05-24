@@ -22,6 +22,7 @@ public struct Account: Codable, Identifiable, Equatable, Sendable {
     public let displayName: String
     public let maskedIdentifier: String
     public let currency: CurrencyCode
+    public let status: AccountStatus
     public let createdAt: Date
     public let updatedAt: Date
 
@@ -33,11 +34,12 @@ public struct Account: Codable, Identifiable, Equatable, Sendable {
         case displayName
         case maskedIdentifier
         case currency
+        case status
         case createdAt
         case updatedAt
     }
 
-    public init(id: String, accountOwnerId: String, kind: AccountKind, institutionName: String, displayName: String, maskedIdentifier: String, currency: CurrencyCode, createdAt: Date, updatedAt: Date) {
+    public init(id: String, accountOwnerId: String, kind: AccountKind, institutionName: String, displayName: String, maskedIdentifier: String, currency: CurrencyCode, status: AccountStatus = .active, createdAt: Date, updatedAt: Date) {
         self.id = id
         self.accountOwnerId = accountOwnerId
         self.kind = kind
@@ -45,6 +47,7 @@ public struct Account: Codable, Identifiable, Equatable, Sendable {
         self.displayName = displayName
         self.maskedIdentifier = maskedIdentifier
         self.currency = currency
+        self.status = status
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -59,6 +62,7 @@ public struct Account: Codable, Identifiable, Equatable, Sendable {
         let rawMaskedIdentifier = try container.decodeIfPresent(String.self, forKey: .maskedIdentifier)
         maskedIdentifier = rawMaskedIdentifier?.isEmpty == false ? rawMaskedIdentifier! : "****"
         currency = try container.decodeIfPresent(CurrencyCode.self, forKey: .currency) ?? .brl
+        status = try container.decodeIfPresent(AccountStatus.self, forKey: .status) ?? .active
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date.distantPast
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
@@ -163,10 +167,15 @@ public struct Transaction: Codable, Identifiable, Equatable, Sendable {
     public let transactionType: TransactionType
     public let originalDate: Date
     public let postedDate: Date?
+    public let cashDate: Date
+    public let competenceDate: Date
     public let descriptionOriginal: String
     public let descriptionNormalized: String
     public let amount: Decimal
     public let currency: CurrencyCode
+    public let categoryId: String?
+    public let paymentSourceAccountId: String?
+    public let installmentGroupId: String?
     public let installmentCurrent: Int?
     public let installmentTotal: Int?
     public let deduplicationFingerprint: String
@@ -176,7 +185,34 @@ public struct Transaction: Codable, Identifiable, Equatable, Sendable {
 
     public var money: Money { Money(amount: amount, currency: currency) }
 
-    public init(id: String, accountOwnerId: String, accountId: String, importFileId: String, creditCardStatementId: String?, sourceTransactionId: String?, transactionType: TransactionType, originalDate: Date, postedDate: Date?, descriptionOriginal: String, descriptionNormalized: String, amount: Decimal, currency: CurrencyCode, installmentCurrent: Int?, installmentTotal: Int?, deduplicationFingerprint: String, reviewStatus: ReviewStatus, createdAt: Date, updatedAt: Date) {
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case accountOwnerId
+        case accountId
+        case importFileId
+        case creditCardStatementId
+        case sourceTransactionId
+        case transactionType
+        case originalDate
+        case postedDate
+        case cashDate
+        case competenceDate
+        case descriptionOriginal
+        case descriptionNormalized
+        case amount
+        case currency
+        case categoryId
+        case paymentSourceAccountId
+        case installmentGroupId
+        case installmentCurrent
+        case installmentTotal
+        case deduplicationFingerprint
+        case reviewStatus
+        case createdAt
+        case updatedAt
+    }
+
+    public init(id: String, accountOwnerId: String, accountId: String, importFileId: String, creditCardStatementId: String?, sourceTransactionId: String?, transactionType: TransactionType, originalDate: Date, postedDate: Date?, cashDate: Date? = nil, competenceDate: Date? = nil, descriptionOriginal: String, descriptionNormalized: String, amount: Decimal, currency: CurrencyCode, categoryId: String? = nil, paymentSourceAccountId: String? = nil, installmentGroupId: String? = nil, installmentCurrent: Int?, installmentTotal: Int?, deduplicationFingerprint: String, reviewStatus: ReviewStatus, createdAt: Date, updatedAt: Date) {
         self.id = id
         self.accountOwnerId = accountOwnerId
         self.accountId = accountId
@@ -186,10 +222,15 @@ public struct Transaction: Codable, Identifiable, Equatable, Sendable {
         self.transactionType = transactionType
         self.originalDate = originalDate
         self.postedDate = postedDate
+        self.cashDate = cashDate ?? postedDate ?? originalDate
+        self.competenceDate = competenceDate ?? originalDate
         self.descriptionOriginal = descriptionOriginal
         self.descriptionNormalized = descriptionNormalized
         self.amount = amount
         self.currency = currency
+        self.categoryId = categoryId
+        self.paymentSourceAccountId = paymentSourceAccountId
+        self.installmentGroupId = installmentGroupId
         self.installmentCurrent = installmentCurrent
         self.installmentTotal = installmentTotal
         self.deduplicationFingerprint = deduplicationFingerprint
@@ -197,34 +238,110 @@ public struct Transaction: Codable, Identifiable, Equatable, Sendable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        accountOwnerId = try container.decode(String.self, forKey: .accountOwnerId)
+        accountId = try container.decode(String.self, forKey: .accountId)
+        importFileId = try container.decode(String.self, forKey: .importFileId)
+        creditCardStatementId = try container.decodeIfPresent(String.self, forKey: .creditCardStatementId)
+        sourceTransactionId = try container.decodeIfPresent(String.self, forKey: .sourceTransactionId)
+        transactionType = try container.decodeIfPresent(TransactionType.self, forKey: .transactionType) ?? .unknown
+        let originalDate = try container.decode(Date.self, forKey: .originalDate)
+        self.originalDate = originalDate
+        let postedDate = try container.decodeIfPresent(Date.self, forKey: .postedDate)
+        self.postedDate = postedDate
+        cashDate = try container.decodeIfPresent(Date.self, forKey: .cashDate) ?? postedDate ?? originalDate
+        competenceDate = try container.decodeIfPresent(Date.self, forKey: .competenceDate) ?? originalDate
+        descriptionOriginal = try container.decodeIfPresent(String.self, forKey: .descriptionOriginal) ?? ""
+        descriptionNormalized = try container.decodeIfPresent(String.self, forKey: .descriptionNormalized) ?? descriptionOriginal
+        amount = try container.decode(Decimal.self, forKey: .amount)
+        currency = try container.decodeIfPresent(CurrencyCode.self, forKey: .currency) ?? .brl
+        categoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
+        paymentSourceAccountId = try container.decodeIfPresent(String.self, forKey: .paymentSourceAccountId)
+        installmentGroupId = try container.decodeIfPresent(String.self, forKey: .installmentGroupId)
+        installmentCurrent = try container.decodeIfPresent(Int.self, forKey: .installmentCurrent)
+        installmentTotal = try container.decodeIfPresent(Int.self, forKey: .installmentTotal)
+        deduplicationFingerprint = try container.decodeIfPresent(String.self, forKey: .deduplicationFingerprint) ?? id
+        reviewStatus = try container.decodeIfPresent(ReviewStatus.self, forKey: .reviewStatus) ?? .notNeeded
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date.distantPast
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+    }
 }
 
 public struct CreditCardStatement: Codable, Identifiable, Equatable, Sendable {
     public let id: String
     public let accountOwnerId: String
     public let accountId: String
+    public let creditCardAccountId: String
     public let importFileId: String
     public let statementPeriodStart: Date
     public let statementPeriodEnd: Date
     public let dueDate: Date
+    public let closingDate: Date?
     public let totalAmount: Decimal
+    public let paidAmount: Decimal
     public let currency: CurrencyCode
     public let status: StatementStatus
     public let createdAt: Date
     public let updatedAt: Date
 
-    public init(id: String, accountOwnerId: String, accountId: String, importFileId: String, statementPeriodStart: Date, statementPeriodEnd: Date, dueDate: Date, totalAmount: Decimal, currency: CurrencyCode, status: StatementStatus, createdAt: Date, updatedAt: Date) {
+    public var remainingAmount: Decimal { max(0, totalAmount - paidAmount) }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case accountOwnerId
+        case accountId
+        case creditCardAccountId
+        case importFileId
+        case statementPeriodStart
+        case statementPeriodEnd
+        case dueDate
+        case closingDate
+        case totalAmount
+        case paidAmount
+        case currency
+        case status
+        case createdAt
+        case updatedAt
+    }
+
+    public init(id: String, accountOwnerId: String, accountId: String, creditCardAccountId: String? = nil, importFileId: String, statementPeriodStart: Date, statementPeriodEnd: Date, dueDate: Date, closingDate: Date? = nil, totalAmount: Decimal, paidAmount: Decimal = 0, currency: CurrencyCode, status: StatementStatus, createdAt: Date, updatedAt: Date) {
         self.id = id
         self.accountOwnerId = accountOwnerId
         self.accountId = accountId
+        self.creditCardAccountId = creditCardAccountId ?? accountId
         self.importFileId = importFileId
         self.statementPeriodStart = statementPeriodStart
         self.statementPeriodEnd = statementPeriodEnd
         self.dueDate = dueDate
+        self.closingDate = closingDate
         self.totalAmount = totalAmount
+        self.paidAmount = paidAmount
         self.currency = currency
         self.status = status
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        accountOwnerId = try container.decode(String.self, forKey: .accountOwnerId)
+        let accountId = try container.decode(String.self, forKey: .accountId)
+        self.accountId = accountId
+        creditCardAccountId = try container.decodeIfPresent(String.self, forKey: .creditCardAccountId) ?? accountId
+        importFileId = try container.decodeIfPresent(String.self, forKey: .importFileId) ?? ""
+        statementPeriodStart = try container.decode(Date.self, forKey: .statementPeriodStart)
+        statementPeriodEnd = try container.decode(Date.self, forKey: .statementPeriodEnd)
+        dueDate = try container.decode(Date.self, forKey: .dueDate)
+        closingDate = try container.decodeIfPresent(Date.self, forKey: .closingDate)
+        totalAmount = try container.decode(Decimal.self, forKey: .totalAmount)
+        paidAmount = try container.decodeIfPresent(Decimal.self, forKey: .paidAmount) ?? 0
+        currency = try container.decodeIfPresent(CurrencyCode.self, forKey: .currency) ?? .brl
+        status = try container.decodeIfPresent(StatementStatus.self, forKey: .status) ?? .unknown
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date.distantPast
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
 }

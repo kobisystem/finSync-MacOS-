@@ -11,7 +11,7 @@ public enum DashboardSummaryCalculator {
                 income.add(transaction.money)
             case .expense, .fee:
                 expenses.add(transaction.money)
-            case .cardPayment, .transfer, .unknown:
+            case .cardPayment, .transfer, .adjustment, .unknown:
                 continue
             }
         }
@@ -32,7 +32,7 @@ public enum DashboardSummaryCalculator {
             netResult: net,
             pendingReviewCount: dataSet.transactions.filter { $0.reviewStatus == .needsReview }.count,
             recentImports: Array(recentImports),
-            forecastConfidence: dataSet.forecasts.sorted { $0.generatedAt > $1.generatedAt }.first?.confidence,
+            forecastConfidence: dataSet.forecastMatrix.monthlyTotals.first?.confidence,
             lastRefresh: LastRefreshState(refreshedAt: dataSet.refreshedAt, isStale: staleMessage != nil, message: staleMessage)
         )
     }

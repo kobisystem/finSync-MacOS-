@@ -11,7 +11,7 @@ final class DashboardSummaryTests: XCTestCase {
                 TestData.transaction(id: "usd", type: .expense, amount: 10, currency: CurrencyCode(rawValue: "USD"), review: .needsReview)
             ],
             imports: [TestData.importFile()],
-            forecasts: [TestData.forecast()]
+            forecastMatrix: TestData.forecastMatrix(confidence: .normal)
         )
         let summary = DashboardSummaryCalculator.makeSummary(from: data)
         XCTAssertEqual(summary.income.amount(for: .brl), 100)
@@ -21,4 +21,3 @@ final class DashboardSummaryTests: XCTestCase {
         XCTAssertEqual(summary.forecastConfidence, .normal)
     }
 }
-

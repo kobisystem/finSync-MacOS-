@@ -766,6 +766,7 @@ public struct TransactionsView: View {
         case .refund: return "Estorno"
         case .fee: return "Tarifa"
         case .transfer: return "Transferência"
+        case .adjustment: return "Ajuste"
         case .unknown: return "—"
         }
     }

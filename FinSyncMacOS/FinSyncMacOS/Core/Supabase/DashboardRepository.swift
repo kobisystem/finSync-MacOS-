@@ -12,9 +12,8 @@ public actor DashboardRepository: DashboardRepositoryProtocol {
             transactions: dataSet.transactions.filter { $0.accountOwnerId == accountOwnerId },
             classifications: dataSet.classifications.filter { $0.accountOwnerId == accountOwnerId },
             imports: dataSet.imports.filter { $0.accountOwnerId == accountOwnerId },
-            forecasts: dataSet.forecasts.filter { $0.accountOwnerId == accountOwnerId },
+            forecastMatrix: dataSet.forecastMatrix,
             refreshedAt: Date()
         )
     }
 }
-

@@ -4,14 +4,24 @@ public struct DashboardDataSet: Equatable, Sendable {
     public var transactions: [Transaction]
     public var classifications: [TransactionClassification]
     public var imports: [ImportFile]
-    public var forecasts: [CashFlowForecast]
+    public var forecastMatrix: CashFlowForecastMatrix
     public var refreshedAt: Date
 
-    public init(transactions: [Transaction] = [], classifications: [TransactionClassification] = [], imports: [ImportFile] = [], forecasts: [CashFlowForecast] = [], refreshedAt: Date = Date()) {
+    public init(
+        transactions: [Transaction] = [],
+        classifications: [TransactionClassification] = [],
+        imports: [ImportFile] = [],
+        forecastMatrix: CashFlowForecastMatrix = CashFlowForecastMatrix.empty(
+            startMonth: Calendar(identifier: .gregorian).date(from: Calendar(identifier: .gregorian).dateComponents([.year], from: Date())) ?? Date(),
+            months: 12,
+            defaultWindow: true
+        ),
+        refreshedAt: Date = Date()
+    ) {
         self.transactions = transactions
         self.classifications = classifications
         self.imports = imports
-        self.forecasts = forecasts
+        self.forecastMatrix = forecastMatrix
         self.refreshedAt = refreshedAt
     }
 }
@@ -39,4 +49,3 @@ public struct DashboardSummary: Equatable, Sendable {
     public let forecastConfidence: ForecastConfidence?
     public let lastRefresh: LastRefreshState
 }
-

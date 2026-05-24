@@ -2,9 +2,12 @@ import SwiftUI
 
 public enum AppSection: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard"
+    case monthly = "Mensal"
     case imports = "Importacoes"
     case accounts = "Contas"
     case transactions = "Transacoes"
+    case cards = "Cartoes"
+    case balances = "Saldos"
     case review = "Revisao"
     case categories = "Categorias"
     case kpis = "KPIs"
@@ -16,9 +19,12 @@ public enum AppSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .dashboard:    return "square.grid.2x2.fill"
+        case .monthly:      return "calendar"
         case .imports:      return "tray.and.arrow.down.fill"
         case .accounts:     return "creditcard.fill"
         case .transactions: return "arrow.left.arrow.right.circle.fill"
+        case .cards:        return "creditcard.and.123"
+        case .balances:     return "scalemass.fill"
         case .review:       return "checkmark.seal.fill"
         case .categories:   return "tag.fill"
         case .kpis:         return "chart.bar.fill"
@@ -30,9 +36,12 @@ public enum AppSection: String, CaseIterable, Identifiable {
     var tint: Color {
         switch self {
         case .dashboard:    return NeonPalette.neonPurple
+        case .monthly:      return NeonPalette.neonCyan
         case .imports:      return NeonPalette.neonCyan
         case .accounts:     return NeonPalette.neonMint
         case .transactions: return NeonPalette.neonPink
+        case .cards:        return NeonPalette.neonPink
+        case .balances:     return NeonPalette.neonMint
         case .review:       return NeonPalette.neonOrange
         case .categories:   return NeonPalette.neonCyan
         case .kpis:         return NeonPalette.neonMint
@@ -311,7 +320,7 @@ public struct AppShellView: View {
                         transactions: snapshot.transactions,
                         classifications: snapshot.classifications,
                         imports: snapshot.imports,
-                        forecasts: snapshot.forecasts,
+                        forecastMatrix: snapshot.forecastMatrix,
                         refreshedAt: snapshot.refreshedAt
                     ),
                     staleMessage: staleMessage
@@ -320,10 +329,36 @@ public struct AppShellView: View {
                 onReview: { selection = .review },
                 onRefresh: { Task { await refresh() } }
             )
+        case .monthly:
+            MonthlyView(
+                transactions: snapshot.transactions,
+                classifications: snapshot.classifications,
+                categories: snapshot.categories,
+                accounts: snapshot.accounts,
+                periods: snapshot.monthlyPeriods
+            )
         case .imports:
             ImportsView(imports: snapshot.imports.map(ImportPresentation.init(file:)))
         case .accounts:
             AccountsView(accounts: snapshot.accounts)
+        case .cards:
+            CardsView(
+                overview: CardStatementsCalculator.overview(
+                    statements: snapshot.creditCardStatements,
+                    transactions: snapshot.transactions,
+                    accounts: snapshot.accounts,
+                    obligations: snapshot.obligations
+                )
+            )
+        case .balances:
+            BalancesView(
+                summary: BalanceReconciliationCalculator.summary(
+                    accounts: snapshot.accounts,
+                    snapshots: snapshot.balanceSnapshots,
+                    statements: snapshot.creditCardStatements,
+                    periods: snapshot.monthlyPeriods
+                )
+            )
         case .transactions:
             TransactionsView(
                 transactions: snapshot.transactions,
@@ -347,17 +382,7 @@ public struct AppShellView: View {
         case .kpis:
             KPIsView(kpis: MonthlyKPICalculator.calculate(transactions: snapshot.transactions, classifications: snapshot.classifications, categories: snapshot.categories))
         case .forecast:
-            ForecastView(forecast: snapshot.forecasts.sorted { $0.generatedAt > $1.generatedAt }.first.map {
-                ForecastPresentation(
-                    id: $0.id,
-                    month: $0.month,
-                    projectedNetResult: Money(amount: $0.projectedNetResult, currency: .brl),
-                    projectedBalance: Money(amount: $0.projectedBalance, currency: .brl),
-                    confidence: $0.confidence,
-                    basisSummary: $0.basisSummary,
-                    generatedAt: $0.generatedAt
-                )
-            })
+            ForecastView(matrix: resolvedForecastMatrix(snapshot: snapshot))
         case .audit:
             AuditView(events: snapshot.auditEvents.map {
                 AuditPresentation(
@@ -387,7 +412,11 @@ public struct AppShellView: View {
                 snapshot.imports.isEmpty == false ||
                 snapshot.transactions.isEmpty == false ||
                 snapshot.categories.isEmpty == false ||
-                snapshot.forecasts.isEmpty == false ||
+                snapshot.creditCardStatements.isEmpty == false ||
+                snapshot.balanceSnapshots.isEmpty == false ||
+                snapshot.monthlyPeriods.isEmpty == false ||
+                snapshot.obligations.isEmpty == false ||
+                snapshot.forecastMatrix.monthlyTotals.isEmpty == false ||
                 snapshot.auditEvents.isEmpty == false
             snapshotState = hasAnyData ? .ready(snapshot) : .empty
         } catch AppError.permissionDenied {
@@ -399,6 +428,22 @@ public struct AppShellView: View {
         } catch {
             snapshotState = .failed(.unknown(String(describing: error)))
         }
+    }
+
+    private func resolvedForecastMatrix(snapshot: FinancialSnapshot) -> CashFlowForecastMatrix {
+        let backend = snapshot.forecastMatrix
+        guard backend.categoryLines.isEmpty else { return backend }
+
+        let startMonth = backend.months.first ?? backend.metadata.startMonth
+        let monthsCount = max(backend.metadata.months, backend.months.count)
+        return CashFlowMatrixCalculator.build(
+            transactions: snapshot.transactions,
+            classifications: snapshot.classifications,
+            categories: snapshot.categories,
+            startMonth: startMonth,
+            months: monthsCount > 0 ? monthsCount : 12,
+            defaultWindow: backend.metadata.defaultWindow
+        )
     }
 
     private func reviewItems(from snapshot: FinancialSnapshot) -> [ReviewItem] {
