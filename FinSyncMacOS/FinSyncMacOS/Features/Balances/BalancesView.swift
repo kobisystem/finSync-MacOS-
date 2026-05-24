@@ -2,9 +2,21 @@ import SwiftUI
 
 public struct BalancesView: View {
     private let summary: NetWorthSummary
+    private let onAddSnapshot: (_ accountId: String, _ date: Date, _ amount: Decimal) async throws -> Void
 
-    public init(summary: NetWorthSummary) {
+    @State private var snapshotAccountId: String = ""
+    @State private var snapshotDate = Date()
+    @State private var snapshotAmount = ""
+    @State private var isSavingSnapshot = false
+    @State private var snapshotError: String?
+    @State private var snapshotSaved = false
+
+    public init(
+        summary: NetWorthSummary,
+        onAddSnapshot: @escaping (_ accountId: String, _ date: Date, _ amount: Decimal) async throws -> Void = { _, _, _ in }
+    ) {
         self.summary = summary
+        self.onAddSnapshot = onAddSnapshot
     }
 
     public var body: some View {
@@ -18,6 +30,7 @@ public struct BalancesView: View {
                     header
                     kpiStrip
                     accountsCard
+                    manualSnapshotCard
                     if summary.unreconciled.isEmpty == false {
                         unreconciledCard
                     }
@@ -119,6 +132,87 @@ public struct BalancesView: View {
         case .calculated: return NeonPalette.neonOrange
         case .none: return NeonPalette.textTertiary
         }
+    }
+
+    private var manualSnapshotCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.viewfinder")
+                    .foregroundStyle(NeonPalette.neonCyan)
+                Text("Adicionar saldo manual")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(NeonPalette.textPrimary)
+                Spacer()
+                if isSavingSnapshot { ProgressView().controlSize(.small) }
+            }
+            Text("Registra uma observação de saldo. Não cria transação financeira.")
+                .font(.system(size: 11))
+                .foregroundStyle(NeonPalette.textTertiary)
+
+            HStack(spacing: 12) {
+                Picker("Conta", selection: $snapshotAccountId) {
+                    Text("Selecione").tag("")
+                    ForEach(summary.accountLines) { line in
+                        Text(line.displayName).tag(line.accountId)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: 220)
+                .accessibilityIdentifier("balances.snapshotAccount")
+
+                DatePicker("Data", selection: $snapshotDate, displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.field)
+
+                TextField("Valor", text: $snapshotAmount)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 140)
+                    .accessibilityIdentifier("balances.snapshotAmount")
+
+                Button("Salvar") {
+                    Task { await saveSnapshot() }
+                }
+                .buttonStyle(NeonPrimaryButtonStyle())
+                .disabled(isSavingSnapshot || snapshotAccountId.isEmpty || parsedAmount == nil)
+            }
+
+            if let snapshotError {
+                Text(snapshotError)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(NeonPalette.neonRed)
+            }
+            if snapshotSaved {
+                Text("Snapshot salvo.")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(NeonPalette.neonMint)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .neonCard(tint: NeonPalette.neonCyan, glow: 10, padding: 20)
+    }
+
+    private var parsedAmount: Decimal? {
+        let normalized = snapshotAmount
+            .replacingOccurrences(of: ".", with: "")
+            .replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespaces)
+        guard normalized.isEmpty == false else { return nil }
+        return Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX"))
+    }
+
+    private func saveSnapshot() async {
+        guard let amount = parsedAmount, snapshotAccountId.isEmpty == false else { return }
+        isSavingSnapshot = true
+        snapshotError = nil
+        snapshotSaved = false
+        do {
+            try await onAddSnapshot(snapshotAccountId, snapshotDate, amount)
+            snapshotSaved = true
+            snapshotAmount = ""
+        } catch {
+            snapshotError = "Não foi possível salvar o snapshot: \(error.localizedDescription)"
+        }
+        isSavingSnapshot = false
     }
 
     private var unreconciledCard: some View {

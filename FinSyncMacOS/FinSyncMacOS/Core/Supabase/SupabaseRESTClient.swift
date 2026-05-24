@@ -244,6 +244,56 @@ public actor SupabaseRESTClient {
         }
     }
 
+    /// US5: marks a monthly period as open/reviewed/closed. Requires an existing
+    /// monthly_periods row (the worker creates it); the client only updates it.
+    public func updateMonthlyPeriodStatus(
+        context: SupabaseSessionContext,
+        periodId: String,
+        status: MonthlyPeriodStatus
+    ) async throws {
+        let now = Self.isoTimestamp(Date())
+        var body: [String: String] = ["status": status.rawValue, "updated_at": now]
+        switch status {
+        case .reviewed: body["reviewed_at"] = now
+        case .closed: body["closed_at"] = now
+        case .open: break
+        }
+
+        try await patch(
+            table: "monthly_periods",
+            filters: [
+                URLQueryItem(name: "account_owner_id", value: "eq.\(context.owner.id)"),
+                URLQueryItem(name: "id", value: "eq.\(periodId)")
+            ],
+            body: body,
+            accessToken: context.session.accessToken
+        )
+    }
+
+    /// FR-018: records a manual balance observation. Does not create a financial
+    /// transaction. RLS only allows inserting snapshots with source `manual`.
+    public func insertManualBalanceSnapshot(
+        context: SupabaseSessionContext,
+        accountId: String,
+        snapshotDate: Date,
+        balanceAmount: Decimal
+    ) async throws {
+        let row = ManualBalanceSnapshotInsert(
+            accountOwnerId: context.owner.id,
+            accountId: accountId,
+            snapshotDate: Self.monthDateString(snapshotDate),
+            balanceAmount: balanceAmount,
+            source: "manual",
+            confidence: "normal"
+        )
+
+        try await postRows(
+            table: "balance_snapshots",
+            rows: [row],
+            accessToken: context.session.accessToken
+        )
+    }
+
     private func getOwned<T: Decodable & Sendable>(table: String, ownerId: String, token: String) async throws -> [T] {
         try await get(
             table: table,
@@ -449,6 +499,15 @@ private struct ClassificationRuleCorrectionInsert: Encodable {
     let isActive: Bool
 }
 
+private struct ManualBalanceSnapshotInsert: Encodable {
+    let accountOwnerId: String
+    let accountId: String
+    let snapshotDate: String
+    let balanceAmount: Decimal
+    let source: String
+    let confidence: String
+}
+
 private struct PasswordAuthResponse: Decodable {
     let accessToken: String
     let refreshToken: String
@@ -629,6 +688,12 @@ private extension SupabaseRESTClient {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    static func isoTimestamp(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
         return formatter.string(from: date)
     }
 

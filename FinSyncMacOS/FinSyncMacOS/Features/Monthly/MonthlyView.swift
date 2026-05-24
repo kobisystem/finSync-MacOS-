@@ -6,20 +6,31 @@ public struct MonthlyView: View {
     private let categories: [Category]
     private let accounts: [Account]
     private let periods: [MonthlyPeriod]
+    private let onUpdateStatus: (MonthlyPeriod, MonthlyPeriodStatus) async throws -> Void
     @State private var selectedMonth: Date?
+    @State private var isUpdatingStatus = false
+    @State private var statusError: String?
 
     public init(
         transactions: [Transaction],
         classifications: [TransactionClassification],
         categories: [Category],
         accounts: [Account],
-        periods: [MonthlyPeriod]
+        periods: [MonthlyPeriod],
+        onUpdateStatus: @escaping (MonthlyPeriod, MonthlyPeriodStatus) async throws -> Void = { _, _ in }
     ) {
         self.transactions = transactions
         self.classifications = classifications
         self.categories = categories
         self.accounts = accounts
         self.periods = periods
+        self.onUpdateStatus = onUpdateStatus
+    }
+
+    private var currentPeriod: MonthlyPeriod? {
+        guard let month = resolvedMonth else { return nil }
+        let key = MonthMath.key(month)
+        return periods.first { MonthMath.key($0.month) == key }
     }
 
     private var months: [Date] {
@@ -50,6 +61,7 @@ public struct MonthlyView: View {
                     if overview.changedAfterClose || overview.changedAfterReview {
                         changedAlert(overview)
                     }
+                    statusControl
                     kpiStrip(overview)
                     cardVsPaymentPanel(overview)
                     if overview.hasUnreconciledDifference {
@@ -128,6 +140,81 @@ public struct MonthlyView: View {
             Spacer()
         }
         .neonCard(tint: NeonPalette.neonOrange, glow: 8, padding: 16)
+    }
+
+    // MARK: - Status control (US5)
+
+    @ViewBuilder
+    private var statusControl: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(NeonPalette.neonMint)
+                Text("Fechamento do mês")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(NeonPalette.textPrimary)
+                Spacer()
+                if isUpdatingStatus {
+                    ProgressView().controlSize(.small)
+                }
+            }
+            if let period = currentPeriod {
+                HStack(spacing: 10) {
+                    switch period.status {
+                    case .open:
+                        statusButton("Marcar revisado", icon: "checkmark.circle", tint: NeonPalette.neonMint, target: .reviewed, period: period)
+                        statusButton("Fechar mês", icon: "lock.fill", tint: NeonPalette.neonPurple, target: .closed, period: period)
+                    case .reviewed:
+                        statusButton("Fechar mês", icon: "lock.fill", tint: NeonPalette.neonPurple, target: .closed, period: period)
+                        statusButton("Reabrir", icon: "lock.open", tint: NeonPalette.neonOrange, target: .open, period: period)
+                    case .closed:
+                        statusButton("Reabrir", icon: "lock.open", tint: NeonPalette.neonOrange, target: .open, period: period)
+                    }
+                    Spacer()
+                }
+            } else {
+                Text("Mês ainda não consolidado pelo processamento. O fechamento fica disponível após o worker gerar o período mensal.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(NeonPalette.textTertiary)
+            }
+            if let statusError {
+                Text(statusError)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(NeonPalette.neonRed)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .neonCard(tint: NeonPalette.neonMint, glow: 8, padding: 18)
+    }
+
+    private func statusButton(_ title: String, icon: String, tint: Color, target: MonthlyPeriodStatus, period: MonthlyPeriod) -> some View {
+        Button {
+            Task { await updateStatus(period, to: target) }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                Text(title)
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(tint.opacity(0.16)))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(tint.opacity(0.45), lineWidth: 1))
+            .foregroundStyle(tint)
+        }
+        .buttonStyle(.plain)
+        .disabled(isUpdatingStatus)
+    }
+
+    private func updateStatus(_ period: MonthlyPeriod, to target: MonthlyPeriodStatus) async {
+        isUpdatingStatus = true
+        statusError = nil
+        do {
+            try await onUpdateStatus(period, target)
+        } catch {
+            statusError = "Não foi possível atualizar o status: \(error.localizedDescription)"
+        }
+        isUpdatingStatus = false
     }
 
     // MARK: - KPI Strip

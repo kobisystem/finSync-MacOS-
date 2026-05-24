@@ -335,7 +335,15 @@ public struct AppShellView: View {
                 classifications: snapshot.classifications,
                 categories: snapshot.categories,
                 accounts: snapshot.accounts,
-                periods: snapshot.monthlyPeriods
+                periods: snapshot.monthlyPeriods,
+                onUpdateStatus: { period, status in
+                    try await SupabaseRESTClient(config: context.config).updateMonthlyPeriodStatus(
+                        context: context,
+                        periodId: period.id,
+                        status: status
+                    )
+                    await refresh()
+                }
             )
         case .imports:
             ImportsView(imports: snapshot.imports.map(ImportPresentation.init(file:)))
@@ -357,7 +365,16 @@ public struct AppShellView: View {
                     snapshots: snapshot.balanceSnapshots,
                     statements: snapshot.creditCardStatements,
                     periods: snapshot.monthlyPeriods
-                )
+                ),
+                onAddSnapshot: { accountId, date, amount in
+                    try await SupabaseRESTClient(config: context.config).insertManualBalanceSnapshot(
+                        context: context,
+                        accountId: accountId,
+                        snapshotDate: date,
+                        balanceAmount: amount
+                    )
+                    await refresh()
+                }
             )
         case .transactions:
             TransactionsView(
