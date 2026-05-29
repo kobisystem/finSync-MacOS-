@@ -4,8 +4,12 @@ import FinSyncCore
 enum Fixtures {
     static let now = Date(timeIntervalSince1970: 1_778_198_400)
 
-    static func transaction(id: String, owner: String = "owner-1", type: TransactionType, amount: Decimal, currency: CurrencyCode = .brl, review: ReviewStatus = .notNeeded) -> Transaction {
-        Transaction(id: id, accountOwnerId: owner, accountId: "acc-1", importFileId: "imp-1", creditCardStatementId: nil, sourceTransactionId: nil, transactionType: type, originalDate: now, postedDate: now, descriptionOriginal: "Original", descriptionNormalized: "Normalized", amount: amount, currency: currency, installmentCurrent: nil, installmentTotal: nil, deduplicationFingerprint: "fp-\(id)", reviewStatus: review, createdAt: now, updatedAt: now)
+    static func account(id: String = "acc-1", kind: AccountKind = .bankAccount) -> Account {
+        Account(id: id, accountOwnerId: "owner-1", kind: kind, institutionName: "Bank", displayName: "Conta", maskedIdentifier: "****1234", currency: .brl, createdAt: now, updatedAt: now)
+    }
+
+    static func transaction(id: String, owner: String = "owner-1", accountId: String = "acc-1", type: TransactionType, amount: Decimal, currency: CurrencyCode = .brl, review: ReviewStatus = .notNeeded) -> Transaction {
+        Transaction(id: id, accountOwnerId: owner, accountId: accountId, importFileId: "imp-1", creditCardStatementId: nil, sourceTransactionId: nil, transactionType: type, originalDate: now, postedDate: now, descriptionOriginal: "Original", descriptionNormalized: "Normalized", amount: amount, currency: currency, installmentCurrent: nil, installmentTotal: nil, deduplicationFingerprint: "fp-\(id)", reviewStatus: review, createdAt: now, updatedAt: now)
     }
 
     static func category(active: Bool = true) -> FinSyncCore.Category {
@@ -46,13 +50,18 @@ let totals = [
 expect(totals.amount(for: .brl) == 25, "BRL totals should be grouped")
 expect(totals.amount(for: CurrencyCode(rawValue: "USD")) == 20, "USD totals should be grouped separately")
 
-let summary = DashboardSummaryCalculator.makeSummary(from: DashboardDataSet(transactions: [
-    Fixtures.transaction(id: "income", type: .income, amount: 100),
-    Fixtures.transaction(id: "expense", type: .expense, amount: 40),
-    Fixtures.transaction(id: "card", type: .cardPayment, amount: 40),
-    Fixtures.transaction(id: "usd", type: .expense, amount: 10, currency: CurrencyCode(rawValue: "USD"), review: .needsReview)
+let summary = DashboardSummaryCalculator.makeSummary(from: DashboardDataSet(accounts: [
+    Fixtures.account(id: "bank-1", kind: .bankAccount),
+    Fixtures.account(id: "card-1", kind: .creditCard)
+], transactions: [
+    Fixtures.transaction(id: "income", accountId: "bank-1", type: .income, amount: 100),
+    Fixtures.transaction(id: "expense", accountId: "bank-1", type: .expense, amount: -40),
+    Fixtures.transaction(id: "card-purchase", accountId: "card-1", type: .expense, amount: -300),
+    Fixtures.transaction(id: "card-payment", accountId: "bank-1", type: .cardPayment, amount: -50),
+    Fixtures.transaction(id: "usd", accountId: "bank-1", type: .expense, amount: -10, currency: CurrencyCode(rawValue: "USD"), review: .needsReview)
 ], forecastMatrix: CashFlowForecastMatrix.empty(startMonth: Fixtures.now, months: 12, defaultWindow: true)))
-expect(summary.expenses.amount(for: .brl) == 40, "card_payment must not duplicate expense")
+expect(summary.expenses.amount(for: .brl) == 90, "dashboard must include bank cash expense and card payment without duplicating card purchase")
+expect(summary.netResult.amount(for: .brl) == 10, "dashboard net result should subtract normalized cash expenses")
 expect(summary.expenses.amount(for: CurrencyCode(rawValue: "USD")) == 10, "dashboard must separate currencies")
 expect(summary.pendingReviewCount == 1, "dashboard must count pending review")
 

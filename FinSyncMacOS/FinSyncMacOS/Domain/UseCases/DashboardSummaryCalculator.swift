@@ -4,14 +4,18 @@ public enum DashboardSummaryCalculator {
     public static func makeSummary(from dataSet: DashboardDataSet, staleMessage: String? = nil) -> DashboardSummary {
         var income = GroupedMoneyTotals()
         var expenses = GroupedMoneyTotals()
+        let accountsById = Dictionary(uniqueKeysWithValues: dataSet.accounts.map { ($0.id, $0) })
 
         for transaction in dataSet.transactions {
             switch transaction.transactionType {
             case .income, .refund:
-                income.add(transaction.money)
+                income.add(normalizedMoney(from: transaction))
             case .expense, .fee:
-                expenses.add(transaction.money)
-            case .cardPayment, .transfer, .adjustment, .unknown:
+                guard accountsById[transaction.accountId]?.kind != .creditCard else { continue }
+                expenses.add(normalizedMoney(from: transaction))
+            case .cardPayment:
+                expenses.add(normalizedMoney(from: transaction))
+            case .transfer, .adjustment, .unknown:
                 continue
             }
         }
@@ -35,5 +39,10 @@ public enum DashboardSummaryCalculator {
             forecastConfidence: dataSet.forecastMatrix.monthlyTotals.first?.confidence,
             lastRefresh: LastRefreshState(refreshedAt: dataSet.refreshedAt, isStale: staleMessage != nil, message: staleMessage)
         )
+    }
+
+    private static func normalizedMoney(from transaction: Transaction) -> Money {
+        let amount = transaction.amount < 0 ? -transaction.amount : transaction.amount
+        return Money(amount: amount, currency: transaction.currency)
     }
 }

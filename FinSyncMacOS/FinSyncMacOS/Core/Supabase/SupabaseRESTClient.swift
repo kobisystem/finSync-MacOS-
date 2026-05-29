@@ -294,6 +294,71 @@ public actor SupabaseRESTClient {
         )
     }
 
+    /// Requests server-side forecast regeneration. The worker consumes this
+    /// request with the service role and creates a new forecast_run.
+    public func requestForecastRegeneration(
+        context: SupabaseSessionContext,
+        startMonth: Date,
+        months: Int
+    ) async throws -> String {
+        guard (1...36).contains(months) else {
+            throw AppError.validation("Horizonte de previsão inválido. Use valores entre 1 e 36 meses.")
+        }
+
+        let requestId = UUID().uuidString
+        let row = ForecastRefreshRequestInsert(
+            id: requestId,
+            accountOwnerId: context.owner.id,
+            requestedBy: context.owner.id,
+            startMonth: Self.monthDateString(startMonth),
+            monthsAhead: months,
+            status: "pending"
+        )
+
+        try await postRows(
+            table: "forecast_refresh_requests",
+            rows: [row],
+            accessToken: context.session.accessToken
+        )
+        return requestId
+    }
+
+    public func waitForForecastRegeneration(
+        context: SupabaseSessionContext,
+        requestId: String,
+        timeoutSeconds: TimeInterval = 90
+    ) async throws {
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+
+        while Date() < deadline {
+            let rows: [ForecastRefreshRequestRow] = try await get(
+                table: "forecast_refresh_requests",
+                select: "id,status,forecast_run_id,error_message",
+                filters: [
+                    URLQueryItem(name: "account_owner_id", value: "eq.\(context.owner.id)"),
+                    URLQueryItem(name: "id", value: "eq.\(requestId)"),
+                    URLQueryItem(name: "limit", value: "1")
+                ],
+                accessToken: context.session.accessToken
+            )
+
+            guard let row = rows.first else {
+                throw AppError.network("Solicitação de previsão não encontrada.")
+            }
+
+            switch row.status {
+            case "completed":
+                return
+            case "error":
+                throw AppError.network(row.errorMessage ?? "Falha ao reprocessar previsão.")
+            default:
+                try await Task.sleep(nanoseconds: 3_000_000_000)
+            }
+        }
+
+        throw AppError.network("Tempo limite ao aguardar reprocessamento da previsão.")
+    }
+
     private func getOwned<T: Decodable & Sendable>(table: String, ownerId: String, token: String) async throws -> [T] {
         try await get(
             table: table,
@@ -506,6 +571,22 @@ private struct ManualBalanceSnapshotInsert: Encodable {
     let balanceAmount: Decimal
     let source: String
     let confidence: String
+}
+
+private struct ForecastRefreshRequestInsert: Encodable {
+    let id: String
+    let accountOwnerId: String
+    let requestedBy: String
+    let startMonth: String
+    let monthsAhead: Int
+    let status: String
+}
+
+private struct ForecastRefreshRequestRow: Decodable, Sendable {
+    let id: String
+    let status: String
+    let forecastRunId: String?
+    let errorMessage: String?
 }
 
 private struct PasswordAuthResponse: Decodable {

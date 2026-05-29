@@ -317,6 +317,7 @@ public struct AppShellView: View {
             DashboardView(
                 summary: DashboardSummaryCalculator.makeSummary(
                     from: DashboardDataSet(
+                        accounts: snapshot.accounts,
                         transactions: snapshot.transactions,
                         classifications: snapshot.classifications,
                         imports: snapshot.imports,
@@ -389,7 +390,13 @@ public struct AppShellView: View {
                         category: category,
                         applyToSimilar: applyToSimilar
                     )
-                    await refresh()
+                    await MainActor.run {
+                        applyLocalCategoryCorrection(
+                            transaction: transaction,
+                            category: category,
+                            applyToSimilar: applyToSimilar
+                        )
+                    }
                 }
             )
         case .review:
@@ -397,9 +404,12 @@ public struct AppShellView: View {
         case .categories:
             CategoriesView(categories: snapshot.categories)
         case .kpis:
-            KPIsView(kpis: MonthlyKPICalculator.calculate(transactions: snapshot.transactions, classifications: snapshot.classifications, categories: snapshot.categories))
+            KPIsView(kpis: MonthlyKPICalculator.calculate(transactions: snapshot.transactions, classifications: snapshot.classifications, categories: snapshot.categories, accounts: snapshot.accounts))
         case .forecast:
-            ForecastView(matrix: resolvedForecastMatrix(snapshot: snapshot))
+            ForecastView(
+                matrix: resolvedForecastMatrix(snapshot: snapshot),
+                onRefresh: { Task { await regenerateForecast() } }
+            )
         case .audit:
             AuditView(events: snapshot.auditEvents.map {
                 AuditPresentation(
@@ -447,6 +457,63 @@ public struct AppShellView: View {
         }
     }
 
+    private func regenerateForecast() async {
+        let currentSnapshot: FinancialSnapshot?
+        switch snapshotState {
+        case .ready(let snapshot):
+            currentSnapshot = snapshot
+            snapshotState = .stale(snapshot, message: "Reprocessando previsão...")
+        case .stale(let snapshot, _):
+            currentSnapshot = snapshot
+            snapshotState = .stale(snapshot, message: "Reprocessando previsão...")
+        default:
+            currentSnapshot = nil
+            snapshotState = .loading
+        }
+
+        do {
+            let client = SupabaseRESTClient(config: context.config)
+            let matrix = currentSnapshot?.forecastMatrix
+            let calendar = Calendar(identifier: .gregorian)
+            let defaultStartMonth = calendar.date(from: calendar.dateComponents([.year], from: Date())) ?? Date()
+            let startMonth = matrix?.metadata.startMonth ?? defaultStartMonth
+            let months = max(1, min(36, matrix?.metadata.months ?? matrix?.months.count ?? 12))
+            let requestId = try await client.requestForecastRegeneration(context: context, startMonth: startMonth, months: months)
+            try await client.waitForForecastRegeneration(context: context, requestId: requestId)
+            await refresh()
+        } catch AppError.permissionDenied {
+            snapshotState = .permissionDenied
+        } catch AppError.expiredSession {
+            snapshotState = .sessionExpired
+        } catch let error as AppError {
+            snapshotState = .failed(error)
+        } catch {
+            snapshotState = .failed(.unknown(String(describing: error)))
+        }
+    }
+
+    private func applyLocalCategoryCorrection(transaction: Transaction, category: Category, applyToSimilar: Bool) {
+        switch snapshotState {
+        case .ready(let snapshot):
+            snapshotState = .ready(snapshot.applyingCategoryCorrection(
+                transaction: transaction,
+                category: category,
+                applyToSimilar: applyToSimilar
+            ))
+        case .stale(let snapshot, let message):
+            snapshotState = .stale(
+                snapshot.applyingCategoryCorrection(
+                    transaction: transaction,
+                    category: category,
+                    applyToSimilar: applyToSimilar
+                ),
+                message: message
+            )
+        default:
+            break
+        }
+    }
+
     private func resolvedForecastMatrix(snapshot: FinancialSnapshot) -> CashFlowForecastMatrix {
         let backend = snapshot.forecastMatrix
         guard backend.categoryLines.isEmpty else { return backend }
@@ -485,5 +552,86 @@ public struct AppShellView: View {
                     )
                 )
             }
+    }
+}
+
+private extension FinancialSnapshot {
+    func applyingCategoryCorrection(transaction: Transaction, category: Category, applyToSimilar: Bool) -> FinancialSnapshot {
+        let targetTransactionIds = Set(transactions.compactMap { candidate -> String? in
+            if applyToSimilar {
+                return candidate.descriptionNormalized == transaction.descriptionNormalized ? candidate.id : nil
+            }
+            return candidate.id == transaction.id ? candidate.id : nil
+        })
+
+        guard targetTransactionIds.isEmpty == false else { return self }
+
+        let now = Date()
+        let updatedTransactions = transactions.map { candidate in
+            guard targetTransactionIds.contains(candidate.id) else { return candidate }
+            return Transaction(
+                id: candidate.id,
+                accountOwnerId: candidate.accountOwnerId,
+                accountId: candidate.accountId,
+                importFileId: candidate.importFileId,
+                creditCardStatementId: candidate.creditCardStatementId,
+                sourceTransactionId: candidate.sourceTransactionId,
+                transactionType: candidate.transactionType,
+                originalDate: candidate.originalDate,
+                postedDate: candidate.postedDate,
+                cashDate: candidate.cashDate,
+                competenceDate: candidate.competenceDate,
+                descriptionOriginal: candidate.descriptionOriginal,
+                descriptionNormalized: candidate.descriptionNormalized,
+                amount: candidate.amount,
+                currency: candidate.currency,
+                categoryId: candidate.categoryId,
+                paymentSourceAccountId: candidate.paymentSourceAccountId,
+                installmentGroupId: candidate.installmentGroupId,
+                installmentCurrent: candidate.installmentCurrent,
+                installmentTotal: candidate.installmentTotal,
+                deduplicationFingerprint: candidate.deduplicationFingerprint,
+                reviewStatus: .reviewed,
+                createdAt: candidate.createdAt,
+                updatedAt: now
+            )
+        }
+
+        let inactiveExistingClassifications = classifications.map { classification in
+            guard targetTransactionIds.contains(classification.transactionId), classification.isActive else {
+                return classification
+            }
+            return TransactionClassification(
+                id: classification.id,
+                accountOwnerId: classification.accountOwnerId,
+                transactionId: classification.transactionId,
+                categoryId: classification.categoryId,
+                source: classification.source,
+                confidence: classification.confidence,
+                explanation: classification.explanation,
+                isActive: false,
+                createdAt: classification.createdAt
+            )
+        }
+
+        let localCorrections = targetTransactionIds.map { transactionId in
+            TransactionClassification(
+                id: "local-\(UUID().uuidString)",
+                accountOwnerId: owner.id,
+                transactionId: transactionId,
+                categoryId: category.id,
+                source: .user,
+                confidence: 1,
+                explanation: "Correcao manual do usuario.",
+                isActive: true,
+                createdAt: now
+            )
+        }
+
+        var updatedSnapshot = self
+        updatedSnapshot.transactions = updatedTransactions
+        updatedSnapshot.classifications = inactiveExistingClassifications + localCorrections
+        updatedSnapshot.refreshedAt = now
+        return updatedSnapshot
     }
 }

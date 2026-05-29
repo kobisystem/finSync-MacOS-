@@ -2,10 +2,12 @@ import SwiftUI
 
 public struct ForecastView: View {
     public let matrix: CashFlowForecastMatrix
+    public let onRefresh: () -> Void
     @State private var horizonMonths: Int = 12
 
-    public init(matrix: CashFlowForecastMatrix) {
+    public init(matrix: CashFlowForecastMatrix, onRefresh: @escaping () -> Void = {}) {
         self.matrix = matrix
+        self.onRefresh = onRefresh
     }
 
     private var maxHorizon: Int { max(1, min(36, matrix.months.count)) }
@@ -53,7 +55,8 @@ public struct ForecastView: View {
                 }
                 .padding(28)
             }
-            .onAppear { horizonMonths = min(12, maxHorizon) }
+            .onAppear { resetHorizon() }
+            .onChange(of: matrix.metadata.generatedAt) { _, _ in resetHorizon() }
         }
     }
 
@@ -80,8 +83,21 @@ public struct ForecastView: View {
                 .font(.system(size: 12, weight: .medium))
             }
             Spacer()
-            horizonControl
+            HStack(spacing: 10) {
+                Button(action: onRefresh) {
+                    HStack(spacing: 7) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Atualizar")
+                    }
+                }
+                .buttonStyle(NeonSecondaryButtonStyle())
+                horizonControl
+            }
         }
+    }
+
+    private func resetHorizon() {
+        horizonMonths = min(12, maxHorizon)
     }
 
     private var horizonControl: some View {

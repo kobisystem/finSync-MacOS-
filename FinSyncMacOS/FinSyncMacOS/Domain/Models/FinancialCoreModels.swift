@@ -333,9 +333,9 @@ public struct CreditCardStatement: Codable, Identifiable, Equatable, Sendable {
         self.accountId = accountId
         creditCardAccountId = try container.decodeIfPresent(String.self, forKey: .creditCardAccountId) ?? accountId
         importFileId = try container.decodeIfPresent(String.self, forKey: .importFileId) ?? ""
-        statementPeriodStart = try container.decode(Date.self, forKey: .statementPeriodStart)
-        statementPeriodEnd = try container.decode(Date.self, forKey: .statementPeriodEnd)
-        dueDate = try container.decode(Date.self, forKey: .dueDate)
+        statementPeriodStart = try container.decodeIfPresent(Date.self, forKey: .statementPeriodStart) ?? Date.distantPast
+        statementPeriodEnd = try container.decodeIfPresent(Date.self, forKey: .statementPeriodEnd) ?? Date.distantPast
+        dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate) ?? Date.distantPast
         closingDate = try container.decodeIfPresent(Date.self, forKey: .closingDate)
         totalAmount = try container.decode(Decimal.self, forKey: .totalAmount)
         paidAmount = try container.decodeIfPresent(Decimal.self, forKey: .paidAmount) ?? 0
