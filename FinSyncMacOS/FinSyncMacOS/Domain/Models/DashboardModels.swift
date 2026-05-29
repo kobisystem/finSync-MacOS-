@@ -1,6 +1,7 @@
 import Foundation
 
 public struct DashboardDataSet: Equatable, Sendable {
+    public var accounts: [Account]
     public var transactions: [Transaction]
     public var classifications: [TransactionClassification]
     public var imports: [ImportFile]
@@ -8,6 +9,7 @@ public struct DashboardDataSet: Equatable, Sendable {
     public var refreshedAt: Date
 
     public init(
+        accounts: [Account] = [],
         transactions: [Transaction] = [],
         classifications: [TransactionClassification] = [],
         imports: [ImportFile] = [],
@@ -18,6 +20,7 @@ public struct DashboardDataSet: Equatable, Sendable {
         ),
         refreshedAt: Date = Date()
     ) {
+        self.accounts = accounts
         self.transactions = transactions
         self.classifications = classifications
         self.imports = imports

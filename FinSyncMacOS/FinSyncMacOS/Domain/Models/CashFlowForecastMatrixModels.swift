@@ -4,6 +4,7 @@ public enum ForecastCalculationBasis: String, Codable, CaseIterable, Sendable {
     case seasonalLastYear = "seasonal_last_year"
     case movingAvg3m = "moving_avg_3m"
     case installmentSchedule = "installment_schedule"
+    case confirmedActual = "confirmed_actual"
     case confirmedObligation = "confirmed_obligation"
     case noHistory = "no_history"
 }

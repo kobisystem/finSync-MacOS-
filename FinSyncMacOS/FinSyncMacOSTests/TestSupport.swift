@@ -15,11 +15,11 @@ enum TestData {
         Account(id: id, accountOwnerId: owner, kind: kind, institutionName: "Bank", displayName: "Conta", maskedIdentifier: "****1234", currency: currency, createdAt: date(), updatedAt: date())
     }
 
-    static func transaction(id: String, owner: String = "owner-1", type: TransactionType, amount: Decimal, currency: CurrencyCode = .brl, review: ReviewStatus = .notNeeded) -> Transaction {
+    static func transaction(id: String, owner: String = "owner-1", accountId: String = "acc-1", type: TransactionType, amount: Decimal, currency: CurrencyCode = .brl, review: ReviewStatus = .notNeeded) -> Transaction {
         Transaction(
             id: id,
             accountOwnerId: owner,
-            accountId: "acc-1",
+            accountId: accountId,
             importFileId: "imp-1",
             creditCardStatementId: nil,
             sourceTransactionId: nil,

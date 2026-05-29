@@ -18,6 +18,8 @@ public struct TransactionsView: View {
     @State private var pendingCategoryCorrection: PendingCategoryCorrection?
     @State private var categoryMutationError: String?
     @State private var savingCategoryTransactionId: String?
+    @State private var sortColumn: SortColumn = .date
+    @State private var sortAscending: Bool = false
 
     public init(
         transactions: [Transaction],
@@ -39,6 +41,16 @@ public struct TransactionsView: View {
         case expense = "Saídas"
         case card = "Cartões"
         var id: String { rawValue }
+    }
+
+    private enum SortColumn: String, CaseIterable {
+        case date
+        case account
+        case description
+        case category
+        case amount
+        case type
+        case status
     }
 
     private var accountsById: [String: Account] {
@@ -104,39 +116,58 @@ public struct TransactionsView: View {
         }
     }
 
-    private struct DayGroup: Identifiable {
-        let id: Date
-        let date: Date
-        let items: [Transaction]
-    }
-
     private struct PendingCategoryCorrection: Identifiable {
         let transaction: Transaction
         let category: Category
         var id: String { "\(transaction.id)-\(category.id)" }
     }
 
-    private var groupedTransactions: [DayGroup] {
-        let calendar = Calendar(identifier: .gregorian)
-        let groups = Dictionary(grouping: filteredTransactions) { txn -> Date in
-            calendar.startOfDay(for: txn.postedDate ?? txn.originalDate)
+    private var sortedTransactions: [Transaction] {
+        filteredTransactions.sorted { lhs, rhs in
+            let comparison: ComparisonResult
+            switch sortColumn {
+            case .date:
+                comparison = compare(lhs.postedDate ?? lhs.originalDate, rhs.postedDate ?? rhs.originalDate)
+            case .account:
+                comparison = compare(accountSortLabel(lhs), accountSortLabel(rhs))
+            case .description:
+                comparison = compare(lhs.descriptionNormalized, rhs.descriptionNormalized)
+            case .category:
+                comparison = compare(categoryName(for: lhs), categoryName(for: rhs))
+            case .amount:
+                comparison = compare(lhs.amount, rhs.amount)
+            case .type:
+                comparison = compare(label(for: lhs.transactionType), label(for: rhs.transactionType))
+            case .status:
+                comparison = compare(statusSortLabel(lhs), statusSortLabel(rhs))
+            }
+
+            if comparison == .orderedSame {
+                return (lhs.postedDate ?? lhs.originalDate) > (rhs.postedDate ?? rhs.originalDate)
+            }
+            return sortAscending ? comparison == .orderedAscending : comparison == .orderedDescending
         }
-        return groups
-            .map { DayGroup(id: $0.key, date: $0.key, items: $0.value.sorted { ($0.postedDate ?? $0.originalDate) > ($1.postedDate ?? $1.originalDate) }) }
-            .sorted { $0.date > $1.date }
     }
 
-    private var totals: (income: Decimal, expenses: Decimal, net: Decimal) {
+    private var totals: (income: Decimal, incomeCount: Int, expenses: Decimal, expenseCount: Int, net: Decimal, totalCount: Int) {
         var income: Decimal = 0
         var expenses: Decimal = 0
+        var incomeCount = 0
+        var expenseCount = 0
         for txn in filteredTransactions {
-            if txn.amount >= 0 { income += txn.amount } else { expenses += -txn.amount }
+            if txn.amount >= 0 || txn.transactionType == .income || txn.transactionType == .refund {
+                income += abs(txn.amount)
+                incomeCount += 1
+            } else {
+                expenses += abs(txn.amount)
+                expenseCount += 1
+            }
         }
-        return (income, expenses, income - expenses)
+        return (income, incomeCount, expenses, expenseCount, income - expenses, filteredTransactions.count)
     }
 
     public var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
+        ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 22) {
                 header
                 summaryCards
@@ -222,29 +253,30 @@ public struct TransactionsView: View {
     }
 
     private var periodLabel: String {
-        guard let first = filteredTransactions.last?.originalDate,
-              let last = filteredTransactions.first?.originalDate else {
+        let dates = filteredTransactions.map { $0.postedDate ?? $0.originalDate }.sorted()
+        guard let first = dates.first,
+              let last = dates.last else {
             return "—"
         }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "pt_BR")
-        formatter.dateFormat = "dd MMM, yyyy"
+        formatter.dateFormat = "dd MMM yyyy"
         return "\(formatter.string(from: first)) — \(formatter.string(from: last))"
     }
 
     private var summaryCards: some View {
         let columns = [GridItem(.adaptive(minimum: 220, maximum: 380), spacing: 18)]
         return LazyVGrid(columns: columns, spacing: 18) {
-            summaryCard(title: "Entradas", amount: totals.income, signed: true,
+            summaryCard(title: "Entradas", amount: totals.income, signed: false, count: totals.incomeCount,
                         icon: "arrow.down.left.circle.fill", tint: NeonPalette.neonMint)
-            summaryCard(title: "Saídas", amount: -totals.expenses, signed: true,
+            summaryCard(title: "Saídas", amount: totals.expenses, signed: false, count: totals.expenseCount,
                         icon: "arrow.up.right.circle.fill", tint: NeonPalette.neonPink)
-            summaryCard(title: "Saldo no período", amount: totals.net, signed: false,
+            summaryCard(title: "Saldo no período", amount: totals.net, signed: true, count: totals.totalCount,
                         icon: "equal.circle.fill", tint: NeonPalette.neonPurple)
         }
     }
 
-    private func summaryCard(title: String, amount: Decimal, signed: Bool, icon: String, tint: Color) -> some View {
+    private func summaryCard(title: String, amount: Decimal, signed: Bool, count: Int, icon: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 ZStack {
@@ -258,7 +290,7 @@ public struct TransactionsView: View {
                         .neonGlow(tint, radius: 4)
                 }
                 Spacer()
-                Text("\(filteredTransactions.count) transações")
+                Text("\(count) transações")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(NeonPalette.textSecondary)
                     .padding(.horizontal, 9).padding(.vertical, 4)
@@ -448,11 +480,12 @@ public struct TransactionsView: View {
     }
 
     private enum Col {
-        static let account: CGFloat = 240
-        static let category: CGFloat = 128
+        static let date: CGFloat = 104
+        static let account: CGFloat = 220
+        static let category: CGFloat = 220
         static let value: CGFloat = 120
-        static let type: CGFloat = 96
-        static let status: CGFloat = 100
+        static let type: CGFloat = 86
+        static let status: CGFloat = 96
         static let ellipsis: CGFloat = 24
     }
 
@@ -475,19 +508,13 @@ public struct TransactionsView: View {
                 .padding(.vertical, 8)
                 .background(NeonPalette.surfaceHigh.opacity(0.35))
 
-            ForEach(groupedTransactions) { group in
-                dayHeader(group.date, count: group.items.count)
+            ForEach(Array(sortedTransactions.enumerated()), id: \.element.id) { index, txn in
+                transactionRow(txn)
                     .padding(.horizontal, 16)
-                    .padding(.top, 10)
-                    .padding(.bottom, 4)
-                ForEach(Array(group.items.enumerated()), id: \.element.id) { index, txn in
-                    transactionRow(txn)
+                    .padding(.vertical, 7)
+                if index < sortedTransactions.count - 1 {
+                    Divider().background(NeonPalette.stroke.opacity(0.35))
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 7)
-                    if index < group.items.count - 1 {
-                        Divider().background(NeonPalette.stroke.opacity(0.35))
-                            .padding(.horizontal, 16)
-                    }
                 }
             }
         }
@@ -506,54 +533,52 @@ public struct TransactionsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 16) {
-            columnLabel("Conta / Cartão", alignment: .leading)
+            sortableColumnLabel("Data", column: .date, alignment: .leading)
+                .frame(width: Col.date, alignment: .leading)
+            sortableColumnLabel("Conta / Cartão", column: .account, alignment: .leading)
                 .frame(width: Col.account, alignment: .leading)
-            columnLabel("Descrição", alignment: .leading)
+            sortableColumnLabel("Descrição", column: .description, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            columnLabel("Categoria", alignment: .leading)
+            sortableColumnLabel("Categoria", column: .category, alignment: .leading)
                 .frame(width: Col.category, alignment: .leading)
-            columnLabel("Valor", alignment: .trailing)
+            sortableColumnLabel("Valor", column: .amount, alignment: .trailing)
                 .frame(width: Col.value, alignment: .trailing)
-            columnLabel("Tipo", alignment: .center)
+            sortableColumnLabel("Tipo", column: .type, alignment: .center)
                 .frame(width: Col.type, alignment: .center)
-            columnLabel("Status", alignment: .center)
+            sortableColumnLabel("Status", column: .status, alignment: .center)
                 .frame(width: Col.status, alignment: .center)
             Color.clear.frame(width: Col.ellipsis)
         }
     }
 
-    private func columnLabel(_ text: String, alignment: Alignment = .leading) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .bold))
-            .tracking(0.6)
-            .textCase(.uppercase)
-            .foregroundStyle(NeonPalette.textTertiary)
-    }
-
-    private func dayHeader(_ date: Date, count: Int) -> some View {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.dateFormat = "EEEE, dd 'de' MMMM"
-        let label = formatter.string(from: date).capitalized
-        return HStack(spacing: 10) {
-            Text(label)
-                .font(.system(size: 11, weight: .bold))
-                .tracking(0.6)
-                .foregroundStyle(NeonPalette.neonCyan)
-            Rectangle()
-                .fill(NeonPalette.stroke.opacity(0.5))
-                .frame(height: 1)
-            Text("\(count)")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(NeonPalette.textTertiary)
-                .padding(.horizontal, 7).padding(.vertical, 3)
-                .background(Capsule().fill(NeonPalette.surfaceHigh))
+    private func sortableColumnLabel(_ text: String, column: SortColumn, alignment: Alignment = .leading) -> some View {
+        Button {
+            updateSort(column)
+        } label: {
+            HStack(spacing: 4) {
+                if alignment == .trailing { Spacer(minLength: 0) }
+                Text(text)
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.6)
+                    .textCase(.uppercase)
+                if sortColumn == column {
+                    Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                if alignment == .center || alignment == .leading { Spacer(minLength: 0) }
+            }
+            .foregroundStyle(sortColumn == column ? NeonPalette.neonCyan : NeonPalette.textTertiary)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
     private func transactionRow(_ txn: Transaction) -> some View {
         let account = accountsById[txn.accountId]
         return HStack(alignment: .center, spacing: 16) {
+            dateCell(txn)
+                .frame(width: Col.date, alignment: .leading)
+
             accountCell(account: account, txn: txn)
                 .frame(width: Col.account, alignment: .leading)
 
@@ -576,6 +601,59 @@ public struct TransactionsView: View {
                 .foregroundStyle(NeonPalette.textTertiary)
                 .frame(width: Col.ellipsis, alignment: .center)
         }
+    }
+
+    private func updateSort(_ column: SortColumn) {
+        if sortColumn == column {
+            sortAscending.toggle()
+        } else {
+            sortColumn = column
+            sortAscending = column == .amount
+        }
+    }
+
+    private func compare(_ lhs: String, _ rhs: String) -> ComparisonResult {
+        lhs.localizedCaseInsensitiveCompare(rhs)
+    }
+
+    private func compare(_ lhs: Date, _ rhs: Date) -> ComparisonResult {
+        if lhs < rhs { return .orderedAscending }
+        if lhs > rhs { return .orderedDescending }
+        return .orderedSame
+    }
+
+    private func compare(_ lhs: Decimal, _ rhs: Decimal) -> ComparisonResult {
+        if lhs < rhs { return .orderedAscending }
+        if lhs > rhs { return .orderedDescending }
+        return .orderedSame
+    }
+
+    private func accountSortLabel(_ txn: Transaction) -> String {
+        guard let account = accountsById[txn.accountId] else { return "" }
+        return "\(account.institutionName) \(account.displayName) \(account.maskedIdentifier)"
+    }
+
+    private func statusSortLabel(_ txn: Transaction) -> String {
+        switch txn.reviewStatus {
+        case .reviewed: return "Revisado"
+        case .needsReview: return "Revisar"
+        case .notNeeded: return "Auto"
+        }
+    }
+
+    private func dateCell(_ txn: Transaction) -> some View {
+        Text(dateLabel(txn.postedDate ?? txn.originalDate))
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .foregroundStyle(NeonPalette.textSecondary)
+            .lineLimit(1)
+    }
+
+    private func dateLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "dd/MM/yyyy"
+        return formatter.string(from: date)
     }
 
     private func categoryName(for txn: Transaction) -> String {
@@ -610,6 +688,7 @@ public struct TransactionsView: View {
                 }
                 Text(label)
                     .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(NeonPalette.textTertiary)
@@ -622,6 +701,7 @@ public struct TransactionsView: View {
             .overlay(Capsule().strokeBorder(isMissing ? NeonPalette.stroke : NeonPalette.neonCyan.opacity(0.42), lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .disabled(categories.filter(\.isActive).isEmpty || isSaving)
     }
 
@@ -724,14 +804,11 @@ public struct TransactionsView: View {
     private func valueCell(txn: Transaction) -> some View {
         let isNegative = txn.amount < 0
         let color = isNegative ? NeonPalette.neonPink : NeonPalette.neonMint
-        return VStack(alignment: .trailing, spacing: 2) {
-            Text(MoneyFormatter.string(amount: txn.amount, currency: txn.currency, signed: true))
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
-            Text(txn.currency.rawValue)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(NeonPalette.textTertiary)
-        }
+        return Text(MoneyFormatter.string(amount: txn.amount, currency: txn.currency, signed: true))
+            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
     }
 
     private func typeCell(txn: Transaction) -> some View {
